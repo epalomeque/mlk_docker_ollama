@@ -50,10 +50,55 @@ copy env_example .env
 
 Then edit the `.env` file with your preferred text editor to customize the configuration if needed.
 
-**Configuration Options:**
+### Configuration Options
 
-- `OPENWEBUI_PORT`: The port on your host machine to access Open WebUI (default: 3000)
-- `OLLAMA_API_BASE_URL`: The Ollama API URL (default: <http://ollama:11434>)
+All configuration options are set in the `.env` file. Here are the available options:
+
+#### Open WebUI Configuration
+
+- **`OPENWEBUI_PORT`** (default: `3000`)
+  - The port on your host machine to access the Open WebUI interface
+  - Example: Set to `8080` to access Open WebUI at `http://localhost:8080`
+  - **Note**: The container always runs on port `8080` internally; this setting only changes the host port mapping
+
+#### Ollama Configuration
+
+- **`OLLAMA_PORT`** (default: `11434`)
+  - The port for the Ollama API service
+  - Used for both host-to-container port mapping and service communication
+  - **Note**: If changed, ensure `OLLAMA_API_BASE_URL` (if manually set) matches this port
+
+- **`OLLAMA_SERVICE_NAME`** (default: `ollama`)
+  - The Docker service name for Ollama (used for internal service discovery)
+  - Typically you won't need to change this unless you modify the service name in `docker-compose.yml`
+
+- **`OLLAMA_MODEL`** (default: `gemma3`)
+  - The model to automatically pull and load when containers start
+  - Examples: `llama3`, `llama3.2`, `gemma3`, `mistral`, `codellama`, etc.
+  - **Note**: The first startup will download the model, which may take several minutes depending on model size and internet speed
+  - See [Ollama Model Library](https://ollama.ai/library) for available models
+
+- **`OLLAMA_API_BASE_URL`** (optional, auto-generated)
+  - The full URL for the Ollama API endpoint
+  - **Auto-generated** from `OLLAMA_SERVICE_NAME` and `OLLAMA_PORT` as: `http://<OLLAMA_SERVICE_NAME>:<OLLAMA_PORT>`
+  - Default auto-generated value: `http://ollama:11434`
+  - Only override if you need a custom URL (e.g., external Ollama instance)
+  - Format: `http://hostname:port` or `https://hostname:port`
+
+#### Example `.env` Configuration
+
+```bash
+# Open WebUI Configuration
+OPENWEBUI_PORT=3000
+
+# Ollama Configuration
+OLLAMA_PORT=11434
+OLLAMA_SERVICE_NAME=ollama
+OLLAMA_MODEL=gemma3
+
+# Optional: Override auto-generated API URL
+# OLLAMA_API_BASE_URL=http://ollama:11434
+```
 
 ### 3. Start the Services
 
@@ -95,6 +140,8 @@ The Ollama API is available at:
 http://localhost:11434
 ```
 
+(Replace `11434` with your configured `OLLAMA_PORT` if you changed it)
+
 ### Managing Services
 
 **Stop the services:**
@@ -129,6 +176,66 @@ docker compose logs -f
 docker compose restart open-webui
 docker compose restart ollama
 ```
+
+### Updating Containers
+
+To update your containers to the latest versions:
+
+**Update all containers:**
+
+```bash
+# Pull the latest images
+docker compose pull
+
+# Recreate containers with new images (preserves data)
+docker compose up -d
+```
+
+**Update a specific service:**
+
+```bash
+# Pull latest image for a specific service
+docker compose pull open-webui
+# or
+docker compose pull ollama
+
+# Recreate that specific service
+docker compose up -d open-webui
+# or
+docker compose up -d ollama
+```
+
+**Update and rebuild (if docker-compose.yml changed):**
+
+```bash
+# Pull latest images and recreate all containers
+docker compose pull
+docker compose up -d --force-recreate
+```
+
+**Best Practices:**
+
+1. **Backup your data** before updating (especially if using custom models):
+
+   ```bash
+   # Backup Ollama models
+   cp -r ./volumes ./volumes.backup
+   ```
+
+2. **Check for breaking changes** in the service release notes before updating
+
+3. **Verify after update**: Check that services are running correctly:
+
+   ```bash
+   docker compose ps
+   docker compose logs
+   ```
+
+4. **Pull specific image tags** (if needed):
+   - Open WebUI: Uses `main` tag (latest stable)
+   - Ollama: Uses `latest` tag
+
+**Note**: Updates will preserve your data volumes, but model downloads may be re-validated on first startup after an Ollama update.
 
 ## Data Persistence
 
