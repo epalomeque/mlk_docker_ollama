@@ -8,9 +8,12 @@ services:
     ports:
       - "${OPENWEBUI_PORT:-3000}:8080"
     environment:
-      - OLLAMA_API_BASE_URL=${OLLAMA_API_BASE_URL:-http://ollama:11434}
+      - OLLAMA_API_BASE_URL=${OLLAMA_API_BASE_URL:-http://ollama:${OLLAMA_PORT:-11434}}
     depends_on:
-      - ollama
+      ollama:
+        condition: service_healthy
+      ollama-pull:
+        condition: service_completed_successfully
     volumes:
       - open-webui-data:/app/backend/data
     restart: unless-stopped
@@ -20,11 +23,39 @@ services:
   ollama:
     image: ollama/ollama:latest
     ports:
-      - "0.0.0.0:11434:11434"
+      - "0.0.0.0:${OLLAMA_PORT:-11434}:${OLLAMA_PORT:-11434}"
     volumes:
       - ./volumes:/root/.ollama
     networks:
       - ollama_network
+    healthcheck:
+      test: ["CMD-SHELL", "ollama list || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  ollama-pull:
+    image: curlimages/curl:latest
+    depends_on:
+      ollama:
+        condition: service_healthy
+    networks:
+      - ollama_network
+    environment:
+      - OLLAMA_SERVICE_NAME=${OLLAMA_SERVICE_NAME:-ollama}
+      - OLLAMA_PORT=${OLLAMA_PORT:-11434}
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-llama3}
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        echo "Waiting for Ollama to be ready..."
+        sleep 5
+        echo "Pulling $${OLLAMA_MODEL} model (this may take a while)..."
+        curl -X POST http://$${OLLAMA_SERVICE_NAME}:$${OLLAMA_PORT}/api/pull -d "{\"name\": \"$${OLLAMA_MODEL}\"}" --no-buffer
+        echo ""
+        echo "Model $${OLLAMA_MODEL} pulled successfully!"
+    restart: "no"
 
 volumes:
   open-webui-data:
