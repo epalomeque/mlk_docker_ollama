@@ -28,15 +28,27 @@ Or download and extract the ZIP file to a directory of your choice.
 
 ### 2. Configure Environment Variables
 
-Create a `.env` file in the project root directory (if it doesn't already exist):
+Create a `.env` file based on the provided `env_example` template:
+
+**On Linux/macOS:**
 
 ```bash
-# Open WebUI Configuration
-OPENWEBUI_PORT=3000
-
-# Ollama API Configuration (optional - uses default if not set)
-OLLAMA_API_BASE_URL=http://ollama:11434
+cp env_example .env
 ```
+
+**On Windows (PowerShell):**
+
+```bash
+Copy-Item env_example .env
+```
+
+**On Windows (Command Prompt):**
+
+```cmd
+copy env_example .env
+```
+
+Then edit the `.env` file with your preferred text editor to customize the configuration if needed.
 
 **Configuration Options:**
 
